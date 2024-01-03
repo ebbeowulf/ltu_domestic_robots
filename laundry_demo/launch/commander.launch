@@ -1,0 +1,7 @@
+<launch>
+  <!-- Launch your commander.py script -->
+  <node name="laundry_demo" pkg="laundry_demo" type="commander.py" output="screen">
+    <!-- Add any command-line arguments if needed -->
+    <!-- <param name="param_name" value="param_value" /> -->
+  </node>
+</launch>
