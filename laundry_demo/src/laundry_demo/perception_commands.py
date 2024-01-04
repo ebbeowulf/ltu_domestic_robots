@@ -114,8 +114,8 @@ class StretchPerception:
             row = 0
             col = 0
 
-            for row in range(int(ymin), int(ymax)):
-                for col in range(int(xmin), int(xmax)):
+            for row in range(int(bbox_center_y-10), int(bbox_center_y+10)):
+                for col in range(int(bbox_center_x-10), int(bbox_center_x+10)):
                     index = (row * pc_data.row_step) + (col * pc_data.point_step)
                     # print("Index: ", index)
 
@@ -124,23 +124,37 @@ class StretchPerception:
                     # print("X point converted. X coordinate: ", X)
                     # print("Y point converted. Y coordinate: ", Y)
                     # print("Z point converted. Z coordinate: ", Z)
-
-                    if row == int(bbox_center_y) and col == int(bbox_center_x):
+                    try:    
                         (X, Y, Z, rgb) = struct.unpack_from("fffl", pc_data.data, offset=index)
-                        # create point stamped object to use when transforming points:
+
                         D3_point = PointStamped()
 
-                        # frame will eventually be 'usb_cam/image_raw'
                         D3_point.header.frame_id = "camera_color_optical_frame"
                         D3_point.header.stamp = detection.header.stamp
-
+                        
                         D3_point.point.x = X
                         D3_point.point.y = Y
                         D3_point.point.z = Z
-
-                        # Append to array of D3 points in camera frame:
+                        
                         D3_bbox_points.append(D3_point)
-                        print("Center Point: ", D3_point)
+                    except e as error:
+                        print("continuing")
+                    # if row == int(bbox_center_y) and col == int(bbox_center_x):
+                    #     (X, Y, Z, rgb) = struct.unpack_from("fffl", pc_data.data, offset=index)
+                    #     # create point stamped object to use when transforming points:
+                    #     D3_point = PointStamped()
+
+                    #     # frame will eventually be 'usb_cam/image_raw'
+                    #     D3_point.header.frame_id = "camera_color_optical_frame"
+                    #     D3_point.header.stamp = detection.header.stamp
+
+
+
+                    #     # Append to array of D3 points in camera frame:
+                    #     D3_bbox_points.append(D3_point)
+                    #     print("Center Point: ", D3_point)
+
+
 
             # Transform 3D points to map frame
             # transformation info:
