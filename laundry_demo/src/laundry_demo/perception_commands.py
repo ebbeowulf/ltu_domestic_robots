@@ -114,8 +114,8 @@ class StretchPerception:
             row = 0
             col = 0
 
-            for row in range(int(bbox_center_y-10), int(bbox_center_y+10)):
-                for col in range(int(bbox_center_x-10), int(bbox_center_x+10)):
+            for row in range(int(max(bbox_center_y-10,ymin)), int(min(bbox_center_y+10,ymax))):
+                for col in range(int(max(bbox_center_x-10,xmin)), int(min(bbox_center_x+10,xmax))):
                     index = (row * pc_data.row_step) + (col * pc_data.point_step)
                     # print("Index: ", index)
 
@@ -137,8 +137,9 @@ class StretchPerception:
                         D3_point.point.z = Z
                         
                         D3_bbox_points.append(D3_point)
-                    except e as error:
-                        print("continuing")
+                    except Exception as error:
+                        print(error)
+
                     # if row == int(bbox_center_y) and col == int(bbox_center_x):
                     #     (X, Y, Z, rgb) = struct.unpack_from("fffl", pc_data.data, offset=index)
                     #     # create point stamped object to use when transforming points:
@@ -190,7 +191,7 @@ class StretchPerception:
                     self.marker_array_msg.markers.append(self.marker)
                     self.marker_pub.publish(self.marker)
 
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as error:
+            except Exception as error:#(tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as error:
                 print("error making transformation: ", error)
 
         self.final_point = PointStamped()
