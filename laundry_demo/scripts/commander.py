@@ -9,7 +9,7 @@ import rospy
 from laundry_demo.joint_commands import StretchManipulation
 from laundry_demo.nav_commands import StretchNavigation
 from laundry_demo.perception_commands import StretchPerception
-from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray, Detection2D, Detection2DArray
+# from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray, Detection2D, Detection2DArray
 from nav_msgs.msg import Odometry
 
 # Commands to start everything on the robot (using ssh on robot):
@@ -33,7 +33,7 @@ roslaunch stretch_funmap mapping.launch map_yaml:=/home/hello-robot/stretch_user
 rosservice call /calibrate_the_robot "{}"
 """
 
-class state_maching():
+class state_machine():
     def __init__(self, start_state: str):
         # Initialize the modules:
         self.nav = StretchNavigation()
