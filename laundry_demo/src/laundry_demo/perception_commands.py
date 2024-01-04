@@ -332,3 +332,9 @@ class StretchPerception:
         detection_array_msg.detections.append(detection_msg)
 
         self.test_pub.publish(detection_array_msg)
+
+if __name__ == "__main__":
+    rospy.init_node("perception")
+    SP=StretchPerception()
+    rospy.spin()
+
