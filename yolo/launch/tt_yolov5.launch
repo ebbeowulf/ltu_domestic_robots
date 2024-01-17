@@ -1,5 +1,5 @@
 <launch>
-    <node name="yolov5" pkg="yolov5" type="tt_yolov5.py" respawn="true" respawn_delay="10" output="screen">
-        <param name="model" value="$(find stretch_commander)/models/best.pt" />
+    <node name="yolo" pkg="yolo" type="tt_yolov5.py" respawn="true" respawn_delay="10" output="screen">
+        <param name="model" value="$(find yolo)/models/best.pt" />
     </node>
 </launch>

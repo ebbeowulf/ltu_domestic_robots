@@ -14,17 +14,22 @@ from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Bool, Header
 from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray, Detection2D, Detection2DArray
+from sensor_msgs.msg import CameraInfo, Image
 from visualization_msgs.msg import Marker, MarkerArray
-
+from cv_bridge import CvBridge, CvBridgeError
 
 class StretchPerception:
     def __init__(self):
         # Subscribers
+        self.cv_bridge = CvBridge()
+
         self.bbox_topic = "/yolo/results"
         self.camera_image_topic = "/camera_throttled/depth/color/points"
         self.bbox_sub = rospy.Subscriber(self.bbox_topic, Detection2DArray, self.bounding_box_callback)
-        self.image_sub = rospy.Subscriber(self.camera_image_topic, PointCloud2, self.point_cloud_callback)
+        # self.image_sub = rospy.Subscriber(self.camera_image_topic, PointCloud2, self.point_cloud_callback)
         # self.stretch_sub=rospy.Subscriber("/tf/map", tf, self.stretch_location_callback)
+        self.cam_info_sub = rospy.Subscriber("/camera_throttled/depth/camera_info",CameraInfo, self.camera_info_callback)
+        self.depth_sub = rospy.Subscriber("/camera_throttled/depth/image_rect_raw",Image, self.depth_callback)
 
         # Publishers
         self.trigger_scan_topic = "/trigger_yolo/"
@@ -82,16 +87,23 @@ class StretchPerception:
             print("Bounding box detection appended to the list of detections")
 
     ################# POINT CLOUD CALLBACK FUNCTIONS###########################
+    def camera_info_callback(self, cam_info):
+        self.cam_info=cam_info
+        self.cam_info_sub.unregister()
 
+    def depth_callback(self, depthI):
+        try:
+            depth_image = self.cv_bridge.imgmsg_to_cv2(depthI, desired_encoding='passthrough')
+        except CvBridgeError as e:
+            print(e)
+
+        depth_array = np.array(depth_image, dtype=np.float32)/1000.0
+        
     # Extract bounding box dimensions and convert
     def point_cloud_callback(self, pc_data):
         # print("point cloud callback reached")
         for detection in self.detections:
             print("detection from bbox callback: ", detection)
-            # for testing:
-            # print(detection)
-
-            # access the bounding box points
             bbox = detection.bbox
 
             width = bbox.size_x
@@ -117,13 +129,6 @@ class StretchPerception:
             for row in range(int(max(bbox_center_y-10,ymin)), int(min(bbox_center_y+10,ymax))):
                 for col in range(int(max(bbox_center_x-10,xmin)), int(min(bbox_center_x+10,xmax))):
                     index = (row * pc_data.row_step) + (col * pc_data.point_step)
-                    # print("Index: ", index)
-
-                    # Get the XYZ points [meters]
-
-                    # print("X point converted. X coordinate: ", X)
-                    # print("Y point converted. Y coordinate: ", Y)
-                    # print("Z point converted. Z coordinate: ", Z)
                     try:    
                         (X, Y, Z, rgb) = struct.unpack_from("fffl", pc_data.data, offset=index)
 
@@ -154,48 +159,49 @@ class StretchPerception:
                     #     # Append to array of D3 points in camera frame:
                     #     D3_bbox_points.append(D3_point)
                     #     print("Center Point: ", D3_point)
-
-
-
-            # Transform 3D points to map frame
-            # transformation info:
-            try:
-                transform = self.tfBuffer.lookup_transform_full(
-                    target_frame="map",
-                    target_time=bbox_time,
-                    source_frame="camera_color_optical_frame",
-                    source_time=bbox_time,
-                    fixed_frame="map",  # VERIFY THIS IF THIS IS CORRECT
-                    timeout=rospy.Duration(10),
-                )
-                print("Transform created")
-
-
-                transformed_points = [
-                    tf2_geometry_msgs.do_transform_point(point, transform) for point in D3_bbox_points
-                ]
-
-                # Used to be Z height sorting and filtering clusters into a single point, since modified to return center of bbox
-                # if self.filter_points(transformed_points):
-                if transformed_points[0]:
-                    # These are the points that will be published
-                    self.detected_objects = True
-                    self.final_point = transformed_points[0]
-                    print("Final point to publish: ", self.final_point)
-                    self.point_pub.publish(self.final_point)
-
-                    self.marker.pose.position.x = transformed_points[0].point.x
-                    self.marker.pose.position.y = transformed_points[0].point.y
-                    self.marker.pose.position.z = transformed_points[0].point.z
-                    self.marker.header.stamp = rospy.Time.now()
-                    self.marker_array_msg.markers.append(self.marker)
-                    self.marker_pub.publish(self.marker)
-
-            except Exception as error:#(tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as error:
-                print("error making transformation: ", error)
+                        
+            self.export_best_point(bbox_time, D3_bbox_points)
 
         self.final_point = PointStamped()
         self.detections = []
+
+    def export_best_point(self,bbox_time, D3_bbox_points):
+        # Transform 3D points to map frame
+        # transformation info:
+        try:
+            transform = self.tfBuffer.lookup_transform_full(
+                target_frame="map",
+                target_time=bbox_time,
+                source_frame="camera_color_optical_frame",
+                source_time=bbox_time,
+                fixed_frame="map",  # VERIFY THIS IF THIS IS CORRECT
+                timeout=rospy.Duration(10),
+            )
+            print("Transform created")
+
+
+            transformed_points = [
+                tf2_geometry_msgs.do_transform_point(point, transform) for point in D3_bbox_points
+            ]
+
+            # Used to be Z height sorting and filtering clusters into a single point, since modified to return center of bbox
+            # if self.filter_points(transformed_points):
+            if transformed_points[0]:
+                # These are the points that will be published
+                self.detected_objects = True
+                self.final_point = transformed_points[0]
+                print("Final point to publish: ", self.final_point)
+                self.point_pub.publish(self.final_point)
+
+                self.marker.pose.position.x = transformed_points[0].point.x
+                self.marker.pose.position.y = transformed_points[0].point.y
+                self.marker.pose.position.z = transformed_points[0].point.z
+                self.marker.header.stamp = rospy.Time.now()
+                self.marker_array_msg.markers.append(self.marker)
+                self.marker_pub.publish(self.marker)
+
+        except Exception as error:#(tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as error:
+            print("error making transformation: ", error)
 
     # ended up not using this:
     """

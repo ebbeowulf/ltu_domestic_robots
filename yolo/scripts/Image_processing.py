@@ -39,18 +39,22 @@ class ImageProcessingNode:
         self.bounding_box_publisher = rospy.Publisher("/yolo/results", Detection2DArray, queue_size=10)
 
         # Subscribe to the image topic
+        print("subscribing to trigger")
         rospy.Subscriber("/trigger_yolo/", Bool, self.trigger_callback)
         self.trigger = False
 
         # image_topic = "/usb_cam/image_raw"
-        image_topic = "/camera/color/image_raw"
+        print("subscribing to image")
+        image_topic = "/camera_throttled/color/image_raw"
         rospy.Subscriber(image_topic, Image, self.image_callback)
 
     def trigger_callback(self, msg):
         self.trigger = msg.data
+        print("trigger called")
     
     # Define a callback function to process image messages and perform object detection
     def image_callback(self, msg):
+        print("Image received")
 
         if (self.trigger):
             self.trigger = False
@@ -58,7 +62,7 @@ class ImageProcessingNode:
             try:
                 # Convert the ROS image message to an OpenCV image
                 cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
-                cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_CLOCKWISE)
+                # cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_CLOCKWISE)
             except Exception as e:
                 rospy.logerr("Error processing image: %s", str(e))
                 
