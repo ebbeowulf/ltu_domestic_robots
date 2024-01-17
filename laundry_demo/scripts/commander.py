@@ -59,7 +59,7 @@ class state_machine():
 
         elif self.state == "detecting":
             for i in range(5):  # Cycle through 3 camera positions
-                self.man(i + 1)
+                # self.man(i + 1)
                 time.sleep(3)  # wait for movement to complete
                 self.per.trigger_yolo()
                 # per.publish_test_box()
@@ -80,7 +80,7 @@ class state_machine():
 
         elif self.state == "collecting":
             # Save the end position of the exploration state so that we can return in the future
-            self.last_pose=rospy.wait_for_message("/odometry",Odometry,timeout=10)
+            self.last_pose=rospy.wait_for_message("/odom",Odometry,timeout=10)
 
             # Get ready to pick up:
             self.man.arm_up()

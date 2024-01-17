@@ -19,7 +19,7 @@ rospy.init_node('object_detection_node')
 # Specify the path to the model
 
 # model_path = ('/home/terminus/rosproj/models/best.pt')
-model_path = rospkg.RosPack().get_path('stretch_commander') +'/models/best.pt'
+model_path = rospkg.RosPack().get_path('yolo') +'/models/best.pt'
 
 # print(model_path)
 
