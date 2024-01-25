@@ -42,11 +42,12 @@ class ImageProcessingNode:
     def image_callback(self, msg):
 
         if (self.trigger):
+            self.trigger=False
             print("Running...")
             try:
                 # Convert the ROS image message to an OpenCV image
                 cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-                cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_CLOCKWISE)
+                # cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_CLOCKWISE)
             except Exception as e:
                 rospy.logerr("Error processing image: %s", str(e))
                 
