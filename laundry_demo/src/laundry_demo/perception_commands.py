@@ -194,7 +194,7 @@ class StretchPerception:
 
             # Used to be Z height sorting and filtering clusters into a single point, since modified to return center of bbox
             # if self.filter_points(transformed_points):
-            if bestP>=0::
+            if bestP>=0:
                 # These are the points that will be published
                 self.detected_objects = True
                 self.final_point = transformed_points[bestP]
