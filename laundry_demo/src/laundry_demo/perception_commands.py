@@ -102,7 +102,7 @@ class StretchPerception:
         
     # Extract bounding box dimensions and convert
     def point_cloud_callback(self, pc_data):
-        print("point cloud callback reached")
+        # print("point cloud callback reached")
         for detection in self.detections:
             print("detection from bbox callback: ", detection)
             bbox = detection.bbox
@@ -187,18 +187,23 @@ class StretchPerception:
                 tf2_geometry_msgs.do_transform_point(point, transform) for point in D3_bbox_points
             ]
 
+            bestP=-1
+            for idx, pt in enumerate(transformed_points):
+                if bestP<0 or (pt.point.z>transformed_points[bestP].point.z):
+                    bestP=idx
+
             # Used to be Z height sorting and filtering clusters into a single point, since modified to return center of bbox
             # if self.filter_points(transformed_points):
-            if transformed_points[0]:
+            if bestP>=0::
                 # These are the points that will be published
                 self.detected_objects = True
-                self.final_point = transformed_points[0]
+                self.final_point = transformed_points[bestP]
                 print("Final point to publish: ", self.final_point)
                 self.point_pub.publish(self.final_point)
 
-                self.marker.pose.position.x = transformed_points[0].point.x
-                self.marker.pose.position.y = transformed_points[0].point.y
-                self.marker.pose.position.z = transformed_points[0].point.z
+                self.marker.pose.position.x = transformed_points[bestP].point.x
+                self.marker.pose.position.y = transformed_points[bestP].point.y
+                self.marker.pose.position.z = transformed_points[bestP].point.z
                 self.marker.header.stamp = rospy.Time.now()
                 self.marker_array_msg.markers.append(self.marker)
                 self.marker_pub.publish(self.marker)
