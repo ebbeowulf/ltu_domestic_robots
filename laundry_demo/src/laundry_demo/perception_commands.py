@@ -163,7 +163,6 @@ class StretchPerception:
                     #     D3_bbox_points.append(D3_point)
                     #     print("Center Point: ", D3_point)
             print("exporting points")
-            pdb.set_trace()
             self.export_best_point(bbox_time, D3_bbox_points)
 
         self.final_point = PointStamped()
