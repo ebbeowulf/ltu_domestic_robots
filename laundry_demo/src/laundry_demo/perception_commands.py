@@ -17,6 +17,7 @@ from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray, Detection2D, Dete
 from sensor_msgs.msg import CameraInfo, Image
 from visualization_msgs.msg import Marker, MarkerArray
 from cv_bridge import CvBridge, CvBridgeError
+import pdb
 
 class StretchPerception:
     def __init__(self):
@@ -26,7 +27,7 @@ class StretchPerception:
         self.bbox_topic = "/yolo/results"
         self.camera_image_topic = "/camera_throttled/depth/color/points"
         self.bbox_sub = rospy.Subscriber(self.bbox_topic, Detection2DArray, self.bounding_box_callback)
-        # self.image_sub = rospy.Subscriber(self.camera_image_topic, PointCloud2, self.point_cloud_callback)
+        self.image_sub = rospy.Subscriber(self.camera_image_topic, PointCloud2, self.point_cloud_callback)
         # self.stretch_sub=rospy.Subscriber("/tf/map", tf, self.stretch_location_callback)
         self.cam_info_sub = rospy.Subscriber("/camera_throttled/depth/camera_info",CameraInfo, self.camera_info_callback)
         self.depth_sub = rospy.Subscriber("/camera_throttled/depth/image_rect_raw",Image, self.depth_callback)
@@ -101,7 +102,7 @@ class StretchPerception:
         
     # Extract bounding box dimensions and convert
     def point_cloud_callback(self, pc_data):
-        # print("point cloud callback reached")
+        print("point cloud callback reached")
         for detection in self.detections:
             print("detection from bbox callback: ", detection)
             bbox = detection.bbox
@@ -130,6 +131,7 @@ class StretchPerception:
                 for col in range(int(max(bbox_center_x-10,xmin)), int(min(bbox_center_x+10,xmax))):
                     index = (row * pc_data.row_step) + (col * pc_data.point_step)
                     try:    
+                        print("Processing point")
                         (X, Y, Z, rgb) = struct.unpack_from("fffl", pc_data.data, offset=index)
 
                         D3_point = PointStamped()
@@ -141,6 +143,7 @@ class StretchPerception:
                         D3_point.point.y = Y
                         D3_point.point.z = Z
                         
+                        print("D3 point added")
                         D3_bbox_points.append(D3_point)
                     except Exception as error:
                         print(error)
@@ -159,7 +162,8 @@ class StretchPerception:
                     #     # Append to array of D3 points in camera frame:
                     #     D3_bbox_points.append(D3_point)
                     #     print("Center Point: ", D3_point)
-                        
+            print("exporting points")
+            pdb.set_trace()
             self.export_best_point(bbox_time, D3_bbox_points)
 
         self.final_point = PointStamped()
