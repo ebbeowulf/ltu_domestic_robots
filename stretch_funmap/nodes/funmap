@@ -14,7 +14,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_srvs.srv import Trigger, TriggerResponse, TriggerRequest
 from tf.transformations import euler_from_quaternion
 from tf2_geometry_msgs import do_transform_pose
-from stretch_srvs.srv import MoveArm, MoveArmResponse, MoveArmRequest
+from stretch_srvs.srv import MoveArm, MoveArmResponse, MoveArmRequest, NavigateBaseAroundObjects, NavigateBaseAroundObjectsRequest, NavigateBaseAroundObjectsResponse
 
 import numpy as np
 import scipy.ndimage as nd
@@ -785,6 +785,13 @@ class FunmapNode(hm.HelloNode):
 
         return MoveArmResponse(success=True, message="success")
 
+    def navigate_around_objects(self, request):
+        rospy.loginfo('navigate around goal service callback =' + str(request))
+        resp=NavigateBaseAroundObjectsResponse()
+        resp.success=False
+        resp.message="Nothing done"
+
+
     def navigate_to_map_pixel(self, end_xy, end_angle=None, robot_xya_pix=None, floor_mask=None):
         # Set the D435i to Default mode for obstacle detection
         trigger_request = TriggerRequest()
@@ -1360,6 +1367,8 @@ class FunmapNode(hm.HelloNode):
                                               self.get_plan_service_callback)
         ###########################
         self.reach_point_service = rospy.Service('/funmap/move_arm', MoveArm, self.reach_to_click_service_callback)
+
+        self.navigate_around_goal_service = rospy.Service('/funmap/informed_navigate_to_goal', NavigateBaseAroundObjects, self.navigate_around_objects)
 
         self.trigger_head_scan_service = rospy.Service('/funmap/trigger_head_scan',
                                                        Trigger,

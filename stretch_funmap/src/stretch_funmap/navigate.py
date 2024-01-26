@@ -126,7 +126,26 @@ class FastSingleViewPlanner():
             return check_result
         rospy.logerr('FastSingleViewPlanner.check_line_path called without first updating the scan with a pointcloud.')
         return False
-        
+    
+    def plan_a_path_with_objects(self, end_xyz, end_frame_id, tf2_buffer, object_list:list, floor_mask=None):
+        # Change the existing max_height_image
+        import copy
+        import pdb
+        mhi_original = copy.copy(self.max_height_im)
+        for obj_ in object_list:
+            pts=np.array([ [pt.x, pt.y, pt.z] for pt in obj_.points])
+            minP=pts.min(0)
+            maxP=pts.max(0)
+            for xx in np.arange(minP[0],maxP[0],0.02):
+                for yy in np.arange(minP[1],maxP[1],0.02):
+                    p=self.max_height_im.get_point_in_image([xx,yy,0.1],end_frame_id,tf2_buffer)
+                    pdb.set_trace()
+            
+        returnVal=plan_a_path(end_xyz, end_frame_id, tf2_buffer, floor_mask)
+        # Now change it back
+        self.max_height_im=mhi_original
+        return returnVal
+
     def plan_a_path(self, end_xyz, end_frame_id, tf2_buffer, floor_mask=None):
         if self.updated: 
             robot_xy_pix, robot_ang_rad, timestamp = self.max_height_im.get_robot_pose_in_image(tf2_buffer)        

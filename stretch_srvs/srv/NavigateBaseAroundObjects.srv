@@ -1,0 +1,5 @@
+geometry_msgs/Point      pt
+geometry_msgs/Polygon[]  objects
+---
+bool success
+string message
