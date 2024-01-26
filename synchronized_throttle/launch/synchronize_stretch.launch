@@ -1,0 +1,8 @@
+<launch>
+    <node name="camera_throttle" pkg="synchronized_throttle" type="synchronized_throttle_node" respawn="true" respawn_delay="10" output="screen">
+    <remap from="/camera/depth/camera_info" to="/camera/aligned_depth_to_color/camera_info"/>
+    <remap from="/camera/depth/image_rect_raw" to="/camera/aligned_depth_to_color/image_raw"/>
+    </node>
+
+    <node name="funmap_throttler" type="throttle" pkg="topic_tools" args="messages /funmap/point_cloud2 1 /funmap_throttled/point_cloud2" />
+</launch>
