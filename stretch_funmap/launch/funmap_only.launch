@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="rviz"            default="true"                           doc="whether to show Rviz" />
+  <arg name="map_yaml"        default="''"                             doc="previously captured FUNMAP map (optional)" />
+  <arg name="debug_directory" default="$(env HELLO_FLEET_PATH)/debug/" doc="directory where debug imagery is saved" />
+
+  <!-- FUNMAP -->
+  <node name="funmap" pkg="stretch_funmap" type="funmap" output="screen"  args="--load_map $(arg map_yaml)">
+    <param name="debug_directory" type="string" value="$(arg debug_directory)"/>
+  </node>
+  <!-- -->
+
+  <!-- KEYBOARD TELEOP -->
+  <node name="keyboard_teleop" pkg="stretch_core" type="keyboard_teleop" output="screen" args='--mapping_on' />
+  <!-- -->
+
+</launch>
