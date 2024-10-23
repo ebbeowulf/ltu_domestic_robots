@@ -1,0 +1,13 @@
+<package>
+  <description brief="detect_and_touch">
+
+     detect_and_touch
+
+  </description>
+  <author>ebeowulf</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/detect_and_touch</url>
+  <depend package="rospy"/>
+
+</package>
