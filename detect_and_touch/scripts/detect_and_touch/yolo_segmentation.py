@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import pdb
 import cv2
-from detect_and_touch.segmentation import image_segmentation
+from segmentation import image_segmentation
 import argparse
 import cv2
 import numpy as np
