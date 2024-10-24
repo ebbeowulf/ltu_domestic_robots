@@ -1,0 +1,3 @@
+string                   main_query
+---
+bool                     success    #indicate successful run of triggered services

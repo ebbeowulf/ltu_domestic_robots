@@ -12,7 +12,7 @@ import message_filters
 from camera_params import camera_params
 from map_utils import pcloud_from_images, create_object_clusters, calculate_iou
 from std_srvs.srv import Trigger, TriggerResponse
-from stretch_srvs.srv import GetCluster, GetClusterRequest, GetClusterResponse, SetInt, SetIntRequest, SetIntResponse
+from stretch_srvs.srv import GetCluster, GetClusterRequest, GetClusterResponse, DrawCluster, DrawClusterRequest, DrawClusterResponse, SetInt, SetIntRequest, SetIntResponse
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -55,7 +55,6 @@ class multi_query_localize:
         for query in self.query_list:
             self.pcloud[query]={'xyz': np.zeros((0,3),dtype=float), 'probs': np.zeros((0),dtype=float), 'rgb': np.zeros((0,3),dtype=float)}
         self.cluster_min_points=cluster_min_points
-        self.cluster_iou=0.5
         self.detection_threshold=detection_threshold
 
         # Setup callback function
@@ -68,19 +67,14 @@ class multi_query_localize:
 
         # Setup service calls
         self.setclustersize_srv = rospy.Service('set_cluster_size', SetInt, self.set_cluster_size_service)
-        self.setiou_srv = rospy.Service('set_cluster_iou_pct', SetInt, self.set_cluster_iou_pct)
         self.clear_srv = rospy.Service('clear_clouds', Trigger, self.clear_clouds_service)
         self.top1_cluster_srv = rospy.Service('get_top1_cluster', GetCluster, self.top1_cluster_service)
+        self.top1_cluster_srv = rospy.Service('draw_clusters', DrawCluster, self.draw_clusters_service)
         self.marker_pub=rospy.Publisher('cluster_markers',MarkerArray,queue_size=5)
 
     def set_cluster_size_service(self, req):
         self.cluster_min_points=req.value
         print(f"Changing minimum cluster size to {self.cluster_min_points} cm2")
-        return SetIntResponse()
-
-    def set_cluster_iou_pct(self, req):
-        self.cluster_iou=req.value/100.0
-        print(f"Changing minimum cluster iou to {self.cluster_iou} pct")
         return SetIntResponse()
 
     def clear_clouds_service(self, msg):
@@ -288,6 +282,31 @@ class multi_query_localize:
                     self.pcloud[query]['rgb']=np.vstack((self.pcloud[query]['rgb'],results[query]['rgb']))
             print(f"Adding {query}:{results[query]['xyz'].shape[0]}.... Total:{self.pcloud[query]['xyz'].shape[0]}")
 
+    # draw the resulting point clouds
+    def draw_clusters_service(self, request):
+        resp=DrawClusterResponse()
+        resp.success=False
+
+        positive_clusters=self.create_and_publish_clusters(request.main_query)
+
+        from draw_pcloud import drawn_image
+        from map_utils import pointcloud_open3d
+        if TRACK_COLOR:
+            pcd_main=pointcloud_open3d(self.pcloud_main['xyz'],self.pcloud_main['rgb'])
+        else:
+            pcd_main=pointcloud_open3d(self.pcloud_main['xyz'], None)
+        dI=drawn_image(pcd_main)
+        boxes = [ obj_.box for obj_ in positive_clusters ]
+        dI.add_boxes_to_fg(boxes)
+        fName=f"draw_clusters.{self.pcloud_main['xyz'].shape[0]}.png"
+        if self.storage_dir is not None:
+            fName=self.storage_dir+"/"+fName
+        dI.save_fg(fName)
+        resp=TriggerResponse()
+        resp.success=True
+        resp.message=fName
+        return resp
+    
 if __name__ == '__main__': 
     import argparse
     parser = argparse.ArgumentParser()

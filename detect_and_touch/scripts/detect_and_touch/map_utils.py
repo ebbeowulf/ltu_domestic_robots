@@ -79,6 +79,22 @@ def create_object_clusters(pts_xyz, pts_prob, floor_threshold=-0.1, detection_th
 
     return object_clusters
 
+# Create an open3d pointcloud object - will randomly sample the cloud
+#   to reduce the number of points as necessary
+def pointcloud_open3d(xyz_points,rgb_points=None,max_num_points=2000000):
+    pcd=o3d.geometry.PointCloud()
+    if xyz_points.shape[0]<max_num_points:
+        pcd.points = o3d.utility.Vector3dVector(xyz_points)
+        if rgb_points is not None:
+            pcd.colors = o3d.utility.Vector3dVector(rgb_points[:,[2,1,0]]/255) 
+    else:
+        rr=np.random.choice(np.arange(xyz_points.shape[0]),max_num_points)
+        pcd.points = o3d.utility.Vector3dVector(xyz_points[rr,:])
+        if rgb_points is not None:
+            rgb2=rgb_points[rr,:]
+            pcd.colors = o3d.utility.Vector3dVector(rgb2[:,[2,1,0]]/255) 
+    return pcd
+
 class object_pcloud():
     def __init__(self, pts, label:str=None, num_samples=1000):
         self.box=np.vstack((pts.min(0),pts.max(0)))
