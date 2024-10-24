@@ -128,20 +128,14 @@ class object_pcloud():
         self.farthestP=None
 
 class pcloud_from_images():
-    def __init__(self, params:camera_params):
+    def __init__(self, params:camera_params, is_yolo=False):
         self.params=params
+        self.is_yolo=is_yolo
         self.YS=None
         self.rows=torch.tensor(np.tile(np.arange(params.height).reshape(params.height,1),(1,params.width))-params.cy,device=DEVICE)
         self.cols=torch.tensor(np.tile(np.arange(params.width),(params.height,1))-params.cx,device=DEVICE)
         self.rot_matrixT=torch.tensor(params.rot_matrix,device=DEVICE)        
         self.loaded_image=None
-
-    # # Image loading to allow us to process more than one class in rapid succession
-    # def load_image_from_file(self, fList:rgbd_file_list, image_key, max_distance=10.0):
-    #     colorI=cv2.imread(fList.get_color_fileName(image_key), -1)
-    #     depthI=cv2.imread(fList.get_depth_fileName(image_key), -1)
-    #     poseM=fList.get_pose(image_key)
-    #     self.load_image(colorI, depthI, poseM, image_key, max_distance=max_distance)
 
     def load_image(self, colorI:np.ndarray, depthI:np.ndarray, poseM:np.ndarray, uid_key:str, max_distance=10.0):
         if self.loaded_image is None or self.loaded_image['key']!=uid_key:
@@ -208,8 +202,12 @@ class pcloud_from_images():
     def process_image(self, tgt_class, detection_threshold, segmentation_save_file=None):
         # Create the image segmentation file
         if self.YS is None or tgt_class not in self.YS.get_all_classes():
-            from clip_segmentation import clip_seg
-            self.YS=clip_seg([tgt_class])
+            if self.is_yolo:
+                from yolo_segmentation import yolo_segmentation
+                self.YS=yolo_segmentation()
+            else:
+                from clip_segmentation import clip_seg
+                self.YS=clip_seg([tgt_class])
 
         # Recover the segmentation file
         if segmentation_save_file is not None and os.path.exists(segmentation_save_file):

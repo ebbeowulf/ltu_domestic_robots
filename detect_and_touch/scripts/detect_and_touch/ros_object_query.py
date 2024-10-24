@@ -26,11 +26,12 @@ def normalizeAngle(angle):
     return angle
 
 class multi_query_localize:
-    def __init__(self, query_list, cluster_min_points, detection_threshold, travel_params, storage_dir=None):
+    def __init__(self, query_list, cluster_min_points, detection_threshold, travel_params, storage_dir=None, is_yolo=False):
         # Initization of the node, name_sub
         rospy.init_node('object_localize', anonymous=True)
         self.listener = tf.TransformListener()
         self.storage_dir = storage_dir
+        self.is_yolo=is_yolo
 
         # Initialize the CvBridge class
         self.bridge = CvBridge()
@@ -174,7 +175,7 @@ class multi_query_localize:
     def cam_info_callback(self, cam_info):
         # print("Cam info received")
         self.params=camera_params(cam_info.height, cam_info.width, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5], np.identity(4,dtype=float))
-        self.pcloud_creator=pcloud_from_images(self.params)
+        self.pcloud_creator=pcloud_from_images(self.params,self.is_yolo)
         self.camera_params_sub.unregister()
 
     def pose_callback(self, odom_msg):
@@ -261,14 +262,14 @@ class multi_query_localize:
             # Convert the ROS Image message to a CV2 Image
             poseM=np.matmul(odom,base_relativeM)
         
-        try:
-            cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
-            cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
-        except CvBridgeError as e:
-            rospy.logerr("CvBridge Error: {0}".format(e))    
-            return
-
+        # Only update the point clouds if this image is significantly different pose from last image
         if self.is_new_image(poseM):
+            try:
+                cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
+                cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+            except CvBridgeError as e:
+                rospy.logerr("CvBridge Error: {0}".format(e))    
+                return
             self.update_point_cloud(cv_image_rgb, cv_image_depth, poseM, rgb_img.header)
     
     def update_point_cloud(self, rgb, depth, poseM, header):
@@ -297,6 +298,8 @@ if __name__ == '__main__':
     parser.add_argument('--min_travel_dist',type=float,default=0.1,help='Minimum distance the robot must travel before adding a new image to the point cloud (default = 0.1m)')
     parser.add_argument('--min_travel_angle',type=float,default=0.1,help='Minimum angle the camera must have moved before adding a new image to the point cloud (default = 0.1 rad)')
     parser.add_argument('--storage_dir',type=str,default=None,help='A place to store intermediate files - but only if specified (default = None)')
+    parser.add_argument('--use_yolo', dest='use_yolo', action='store_true')
+    parser.set_defaults(use_cc=False)
     args = parser.parse_args()
 
     if args.queries is None:
@@ -308,5 +311,6 @@ if __name__ == '__main__':
                           args.num_points,
                           args.detection_threshold,
                           [args.min_travel_dist,args.min_travel_angle],
-                          args.storage_dir)
+                          args.storage_dir,
+                          args.use_yolo)
     rospy.spin()
