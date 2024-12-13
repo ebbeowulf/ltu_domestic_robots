@@ -1,5 +1,5 @@
 string[] joint_names
-float32[] angles
+float32[] positions
 ---
 bool success
 string message

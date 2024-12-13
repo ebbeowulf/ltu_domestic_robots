@@ -730,8 +730,8 @@ class FunmapNode(hm.HelloNode):
 
     def move_joints_service_callback(self, request:MoveJointsRequest):
         pose=dict()
-        for name,angle in zip(request.joint_names,request.angles):
-            pose[name]=angle
+        for name,position in zip(request.joint_names,request.positions):
+            pose[name]=position
         
         self.move_to_pose(pose)
         return MoveJointsResponse(success=True, message="success")
