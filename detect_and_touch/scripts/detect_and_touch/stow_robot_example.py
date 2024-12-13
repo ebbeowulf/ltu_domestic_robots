@@ -1,6 +1,11 @@
 import rospy
 from stretch_srvs.srv import MoveJoints, MoveJointsRequest, MoveJointsResponse
 
+# This code is example code for controlling the arm through funmap.
+# To prepare the robot, start up both the drivers and funmap as usual.
+# Then calibrate the robot. Execute this code to stow the robot arm by
+# providing joint positions for a set of specified joints in the arm
+
 if __name__ == '__main__':
     # Initialize the ROS node
     rospy.init_node('cluster_centroid_publisher')
