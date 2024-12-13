@@ -61,6 +61,7 @@ add_service_files(
   DrawCluster.srv
   GetCluster.srv
   MoveArm.srv
+  MoveJoints.srv
   SetInt.srv
 )
 
