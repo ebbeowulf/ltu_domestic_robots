@@ -1,30 +1,43 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 3.5)
+project(my_package_name)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+# --- Dependencies ---
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 
-rosbuild_init()
+# If your C++ node uses these, list them explicitly
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(cv_bridge REQUIRED)
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+# --- Python ---
+ament_python_install_package(${PROJECT_NAME})
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+install(
+  PROGRAMS
+    my_package_name/my_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+# --- C++ ---
+add_executable(my_cpp_node src/my_cpp_node.cpp)
+ament_target_dependencies(my_cpp_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+  visualization_msgs
+  tf2_ros
+)
+
+install(
+  TARGETS my_cpp_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# --- Package Export ---
+ament_package()
