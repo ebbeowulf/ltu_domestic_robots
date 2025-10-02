@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>detect_and_touch</name>
+  <version>0.0.1</version>
+  <description>Python + C++ ROS2 package</description>
+
+  <maintainer email="user@example.com">ebeowulf</maintainer>
+  <author email="user@example.com">ebeowulf</author>
+  <license>BSD</license>
+
+  <url type="website">http://wiki.ros.org/detect_and_touch</url>
+
+  <!-- Build tools -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <!-- Runtime dependencies -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
