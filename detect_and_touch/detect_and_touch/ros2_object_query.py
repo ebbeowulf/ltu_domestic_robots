@@ -10,15 +10,14 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from threading import Lock
 from tf2_ros import TransformListener, Buffer, TransformBroadcaster, LookupException, ConnectivityException, ExtrapolationException
-
 from tf_transformations import euler_from_quaternion, quaternion_from_euler 
 from scipy.spatial.transform import Rotation as R   
 import message_filters
 from message_filters import Subscriber, ApproximateTimeSynchronizer
-from camera_params import camera_params
-from map_utils import pcloud_from_images, create_object_clusters, calculate_iou
-from std_srvs.srv import Trigger, TriggerResponse
-from stretch_srvs.srv import GetCluster, GetClusterRequest, GetClusterResponse, DrawCluster, DrawClusterRequest, DrawClusterResponse, SetInt, SetIntRequest, SetIntResponse
+from detect_and_touch.camera_params import camera_params
+from detect_and_touch.map_utils import pcloud_from_images, create_object_clusters, calculate_iou
+from std_srvs.srv import Trigger
+from stretch_srvs.srv import GetCluster, DrawCluster, SetInt
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -36,8 +35,10 @@ class multi_query_localize(Node):
         # Initization of the node, name_sub
         super().__init__('object_localize')
 
+        self.get_logger().info("MultiQueryLocalize node has started!")
+        self.get_logger().info("Print1")
 
-        ######## Need to check this part ########
+        # Setup TF listener 
         self.tf_buffer = Buffer() 
         self.listener = TransformListener(self.tf_buffer, self) 
 
@@ -51,7 +52,8 @@ class multi_query_localize(Node):
 
         self.pose_queue=[]
         self.pose_lock=Lock()
-        self.pose_sub = self.create_subscription(Odometry, "/odom", self.pose_callback)
+        self.pose_sub = self.create_subscription(Odometry, "/odom", self.pose_callback, 10)
+        self.get_logger().info("Print2")
         
         # Last image stats
         self.last_image=None
@@ -68,14 +70,19 @@ class multi_query_localize(Node):
             self.pcloud[query]={'xyz': np.zeros((0,3),dtype=float), 'probs': np.zeros((0),dtype=float), 'rgb': np.zeros((0,3),dtype=float)}
         self.cluster_min_points=cluster_min_points
         self.detection_threshold=detection_threshold
+        self.get_logger().info("Print3")
 
         # Setup callback function
-        self.camera_params_sub = self.create_subscription(CameraInfo, '/camera_throttled/depth/camera_info', self.cam_info_callback)
-        self.rgb_sub = message_filters.Subscriber('/camera_throttled/color/image_raw', Image)
-        self.depth_sub = message_filters.Subscriber('/camera_throttled/depth/image_rect_raw', Image)
+        self.camera_params_sub = self.create_subscription(CameraInfo, '/camera/aligned_depth_to_color/camera_info', self.cam_info_callback, 10)
+        self.rgb_sub = message_filters.Subscriber(self, Image, '/camera/color/image_raw')
+        self.depth_sub = message_filters.Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw')
+
+        self.get_logger().info("Print4")
+
 
         self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
         self.ts.registerCallback(self.rgbd_callback)
+
 
         # Setup service calls
         self.setclustersize_srv = self.create_service(SetInt, 'set_cluster_size', self.set_cluster_size_service)
@@ -84,13 +91,15 @@ class multi_query_localize(Node):
         self.top1_cluster_srv = self.create_service(DrawCluster, 'draw_clusters', self.draw_clusters_service)
         self.marker_pub=self.create_publisher(MarkerArray,'cluster_markers',5)
 
+        self.get_logger().info("Print5")
+
     def set_cluster_size_service(self, req):
         self.cluster_min_points=req.value
         print(f"Changing minimum cluster size to {self.cluster_min_points} cm2")
-        return SetIntResponse()
+        return SetInt.Response()
 
     def clear_clouds_service(self, msg):
-        resp=TriggerResponse()
+        resp=Trigger.Response()
         resp.success=True
         for query in self.query_list:
             self.pcloud[query]={'xyz': np.zeros((0,3),dtype=float), 'probs': np.zeros((0),dtype=float), 'rgb': np.zeros((0,3),dtype=float)}
@@ -151,8 +160,8 @@ class multi_query_localize(Node):
 
         return positive_clusters
 
-    def top1_cluster_service(self, request:GetClusterRequest):
-        resp=GetClusterResponse()
+    def top1_cluster_service(self, request:GetCluster.Request()):
+        resp=GetCluster.Response()
         resp.success=False
 
         positive_clusters=self.create_and_publish_clusters(request.main_query)
@@ -179,13 +188,13 @@ class multi_query_localize(Node):
         return resp
     
     def cam_info_callback(self, cam_info):
-        # print("Cam info received")
-        self.params=camera_params(cam_info.height, cam_info.width, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5], np.identity(4,dtype=float))
+        print("Cam info received")
+        self.params=camera_params(cam_info.height, cam_info.width, cam_info.k[0], cam_info.k[4], cam_info.k[2], cam_info.k[5], np.identity(4,dtype=float))
         self.pcloud_creator=pcloud_from_images(self.params,self.is_yolo)
-        self.camera_params_sub.unregister()
+        self.destroy_subscription(self.camera_params_sub) 
 
     def pose_callback(self, odom_msg):
-        # print("pose received")
+        print("pose received")
         self.pose_lock.acquire()
         self.pose_queue.append(odom_msg)
         if len(self.pose_queue)>20:
@@ -193,12 +202,18 @@ class multi_query_localize(Node):
         self.pose_lock.release()
 
     def get_pose(self, tStamp):
-        t=tStamp.to_nsec()
+        # pdb.set_trace()
+        
+        def to_nsec(tStamp):
+            return tStamp.sec*1e9+tStamp.nanosec
+        
+        t=to_nsec(tStamp)
+        # Find the two odometry messages that bound this time
         self.pose_lock.acquire()
         top=None
         bottom=None
         for count, value in enumerate(self.pose_queue):
-            if value.header.stamp.to_nsec()>t:
+            if to_nsec(value.header.stamp)>t:
                 top=value
                 if count>0:
                     bottom=self.pose_queue[count-1]
@@ -207,7 +222,7 @@ class multi_query_localize(Node):
         if top is None or bottom is None:
             return None
         # Linear Interpolation between timestamps
-        slopeT=(t-bottom.header.stamp.to_nsec())/(top.header.stamp.to_nsec()-bottom.header.stamp.to_nsec())
+        slopeT=(t-to_nsec(bottom.header.stamp))/(to_nsec(top.header.stamp)-to_nsec(bottom.header.stamp))
         topP=np.array([top.pose.pose.position.x,top.pose.pose.position.y,top.pose.pose.position.z])
         bottomP=np.array([bottom.pose.pose.position.x,bottom.pose.pose.position.y,bottom.pose.pose.position.z])
         pose = bottomP + slopeT*(topP-bottomP)
@@ -253,7 +268,7 @@ class multi_query_localize(Node):
         print("RGB-D images received")
         if self.pcloud_creator is None:
             return
-        if 1: # if the /map transform is correctly setup, then use tf all the way
+        if 0: # if the /map transform is correctly setup, then use tf all the way
             try:
                 transform = self.tf_buffer.lookup_transform('map', depth_img.header.frame_id, Time.from_msg(depth_img.header.stamp))  
                 trans = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
@@ -325,13 +340,13 @@ class multi_query_localize(Node):
 
     # draw the resulting point clouds
     def draw_clusters_service(self, request):
-        resp=DrawClusterResponse()
+        resp=DrawCluster.Response()
         resp.success=False
 
         positive_clusters=self.create_and_publish_clusters(request.main_query)
 
         from draw_pcloud import drawn_image
-        from map_utils import pointcloud_open3d
+        from detect_and_touch.map_utils import pointcloud_open3d
         if TRACK_COLOR:
             pcd_main=pointcloud_open3d(self.pcloud_main['xyz'],self.pcloud_main['rgb'])
         else:
@@ -343,7 +358,7 @@ class multi_query_localize(Node):
         if self.storage_dir is not None:
             fName=self.storage_dir+"/"+fName
         dI.save_fg(fName)
-        resp=TriggerResponse()
+        resp=Trigger.Response()
         resp.success=True
         resp.message=fName
         return resp
