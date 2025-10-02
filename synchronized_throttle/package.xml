@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>TODO</name>
+  <version>0.0.0</version>
+  <description>TODO</description>
+
+  <!-- Required -->
+  <maintainer email="TODO">TODO</maintainer>
+  <license>TODO</license>
+
+  <!-- Build system -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Dependencies -->
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>image_transport</depend>
+  <depend>message_filters</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
