@@ -1,0 +1,16 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package='pkg',
+            executable='type.py',    # in ROS2, 'type' → 'executable'
+            name='name',
+            output='screen',
+            respawn=True,
+            respawn_delay=10.0,
+            parameters=[{'name': '$(todo)/todo/todo.pt'}]
+        )
+    ])
+
