@@ -1,5 +1,0 @@
-<launch>
-    <node name="yolo" pkg="yolo" type="tt_yolov5.py" respawn="true" respawn_delay="10" output="screen">
-        <param name="model" value="$(find yolo)/models/best.pt" />
-    </node>
-</launch>
