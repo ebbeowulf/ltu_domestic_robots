@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>todo</name>
+  <version>0.0.0</version>
+  <description>todo</description>
+
+  <!-- Required -->
+  <maintainer email="todo">todo</maintainer>
+  <license>TODO</license>
+
+  <!-- Build system -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS2 dependencies -->
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vision_msgs</depend>
+
+  <!-- For generating and using custom .msg/.srv -->
+  <depend>rosidl_default_generators</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
+
