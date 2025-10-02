@@ -1,0 +1,28 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+
+        # First node
+        Node(
+            package='pkg',
+            executable='type',   # 'type' in ROS1 maps to 'executable' in ROS2
+            name='name',
+            output='screen',
+            respawn=True,
+            respawn_delay=10.0,
+            remappings=[
+                ('/camera/depth/camera_info', '/camera/aligned_depth_to_color/camera_info'),
+                ('/camera/depth/image_rect_raw', '/camera/aligned_depth_to_color/image_raw')
+            ]
+        ),
+
+        # Second node
+        Node(
+            package='pkg',
+            executable='type',
+            name='name',
+            arguments=['messages', '/funmap/point_cloud2', '1', '/funmap_throttled/point_cloud2']
+        )
+    ])
