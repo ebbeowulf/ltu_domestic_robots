@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stretch_srvs</name>
+  <version>0.0.0</version>
+  <description>The stretch_srvs package</description>
+
+  <!-- One maintainer tag required -->
+  <!-- Example: -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="TODO">TODO</maintainer>
+  <maintainer email="hello-robot@todo.todo">hello-robot</maintainer>
+
+  <!-- One license tag required -->
+  <!-- Common licenses: BSD, MIT, Apache-2.0, GPLv3 -->
+  <license>TODO</license>
+
+  <!-- Url tags are optional -->
+  <!-- <url type="website">http://wiki.ros.org/stretch_srvs</url> -->
+
+  <!-- Author tags are optional -->
+  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+
+ <!-- Build system -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS2 dependencies -->
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <!-- Message/service generation -->
+  <depend>rosidl_default_generators</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type> 
+  </export>
+</package>
+
