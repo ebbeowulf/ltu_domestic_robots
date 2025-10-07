@@ -26,7 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
              # <executable> = <package>.<file>:<function>
-            'test_ros2 = test_ros2.test_ros2:main',
+            'ros2_object_query = detect_and_touch.ros2_object_query:main',
         ],
     },
 )

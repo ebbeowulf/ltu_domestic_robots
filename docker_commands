@@ -1,0 +1,5 @@
+#Compile
+docker buildx build -t ros2 .
+
+#Run
+docker run -it --name ros2_container --network=host -v ~/ros2_ws/src:/ros2_ws/src ros2

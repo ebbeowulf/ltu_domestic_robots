@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>TODO</name>
-  <version>0.0.0</version>
-  <description>TODO</description>
+<name>synchronized_throttle</name>
+<version>1.0.0</version>
+<description>Container for throttling image stream</description>
 
   <!-- Required -->
-  <maintainer email="TODO">TODO</maintainer>
-  <license>TODO</license>
+  <maintainer email="no@ltu.edu">TODO</maintainer>
+  <license>no one cares</license>
 
   <!-- Build system -->
   <buildtool_depend>ament_cmake</buildtool_depend>
