@@ -2,4 +2,4 @@
 docker buildx build -t ros2 .
 
 #Run
-docker run -it --name ros2_container --network=host -v ~/ros2_ws/src:/ros2_ws/src ros2
+docker run -it --name ros2_container --net host -v ~/ros2_ws/src:/ros2_ws/src -v /dev/shm:/dev/shm ros2

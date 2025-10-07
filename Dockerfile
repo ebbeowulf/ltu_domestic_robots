@@ -1,6 +1,6 @@
 FROM ros:humble
 ARG USERNAME=emartinso
-ARG USER_UID=1000
+ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
 # Delete user if it exists in container (e.g Ubuntu Noble: ubuntu)
