@@ -7,6 +7,7 @@ project(stretch_srvs)
 ## Find ament macros and libraries
 ## In ROS2 we use ament instead of catkin
 find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -25,26 +26,6 @@ find_package(geometry_msgs REQUIRED)
 ## In ROS1 we used add_message_files() and add_service_files().
 ## In ROS2 we use rosidl_generate_interfaces() instead.
 ## All msg/srv/action files are listed directly in that macro.
-
-# add_message_files(
-#   FILES
-#   Cluster.msg
-#   ClusterArray.msg
-# )
-
-# add_service_files(
-#   FILES
-#   DrawCluster.srv
-#   GetCluster.srv
-#   MoveArm.srv
-#   SetInt.srv
-# )
-
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
 
 ## ROS2 equivalent:
 rosidl_generate_interfaces(${PROJECT_NAME}
