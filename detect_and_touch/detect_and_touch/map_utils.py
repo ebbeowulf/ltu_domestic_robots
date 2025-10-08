@@ -1,9 +1,9 @@
 from sklearn.cluster import DBSCAN
-from farthest_point_sampling.fps import farthest_point_sampling
+from .farthest_point_sampling.fps import farthest_point_sampling
 import numpy as np
 import open3d as o3d
 import pickle
-from camera_params import camera_params
+from .camera_params import camera_params
 import torch
 import os
 
@@ -219,10 +219,10 @@ class pcloud_from_images():
         # Create the image segmentation file
         if self.YS is None or tgt_class not in self.YS.get_all_classes():
             if self.is_yolo:
-                from yolo_segmentation import yolo_segmentation
+                from .yolo_segmentation import yolo_segmentation
                 self.YS=yolo_segmentation()
             else:
-                from clip_segmentation import clip_seg
+                from .clip_segmentation import clip_seg
                 self.YS=clip_seg([tgt_class])
 
         # Recover the segmentation file
@@ -237,7 +237,7 @@ class pcloud_from_images():
 
     def multi_prompt_process(self, prompts:list, detection_threshold, rotate90:False):
         if self.YS is None or prompts[0] not in self.YS.get_all_classes():
-            from clip_segmentation import clip_seg
+            from .clip_segmentation import clip_seg
             self.YS=clip_seg(prompts)
 
         if rotate90:

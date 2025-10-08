@@ -14,12 +14,10 @@ from tf2_ros import TransformListener, Buffer, TransformBroadcaster, LookupExcep
 from scipy.spatial.transform import Rotation as R   
 import message_filters
 from message_filters import Subscriber, ApproximateTimeSynchronizer
-# from detect_and_touch.camera_params import camera_params
-# from detect_and_touch.map_utils import pcloud_from_images, create_object_clusters, calculate_iou
-from camera_params import camera_params
-from map_utils import pcloud_from_images, create_object_clusters, calculate_iou
+from .camera_params import camera_params
+from .map_utils import pcloud_from_images, create_object_clusters, calculate_iou
 from std_srvs.srv import Trigger
-# from stretch_srvs.srv import GetCluster, DrawCluster, SetInt
+from stretch_srvs.srv import GetCluster, DrawCluster, SetInt
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -87,18 +85,19 @@ class multi_query_localize(Node):
 
 
         # Setup service calls
-        # self.setclustersize_srv = self.create_service(SetInt, 'set_cluster_size', self.set_cluster_size_service)
+        self.setclustersize_srv = self.create_service(SetInt, 'set_cluster_size', self.set_cluster_size_service)
         self.clear_srv = self.create_service(Trigger, 'clear_clouds', self.clear_clouds_service)
-        # self.top1_cluster_srv = self.create_service(GetCluster, 'get_top1_cluster', self.top1_cluster_service)
-        # self.top1_cluster_srv = self.create_service(DrawCluster, 'draw_clusters', self.draw_clusters_service)
+        self.top1_cluster_srv = self.create_service(GetCluster, 'get_top1_cluster', self.top1_cluster_service)
+        self.top1_cluster_srv = self.create_service(DrawCluster, 'draw_clusters', self.draw_clusters_service)
         self.marker_pub=self.create_publisher(MarkerArray,'cluster_markers',5)
 
         self.get_logger().info("Print5")
 
-    # def set_cluster_size_service(self, req):
-    #     self.cluster_min_points=req.value
-    #     print(f"Changing minimum cluster size to {self.cluster_min_points} cm2")
-    #     return SetInt.Response()
+    def set_cluster_size_service(self, req, response):
+        self.cluster_min_points=req.value
+        print(f"Changing minimum cluster size to {self.cluster_min_points} cm2")
+        response=SetInt.Response()
+        return response
 
     def clear_clouds_service(self, msg):
         resp=Trigger.Response()
@@ -110,13 +109,13 @@ class multi_query_localize(Node):
         return resp
 
     # create the object clusters and filter by the number of points in each
-    # def get_clusters_ros(self, pcd):
-    #     all_objects=create_object_clusters(pcd['xyz'],pcd['probs'], -1.0, self.detection_threshold, compress_clusters=False)
-    #     objects_out=[]
-    #     for obj in all_objects:
-    #         if obj.size()>self.cluster_min_points:
-    #             objects_out.append(obj)
-    #     return objects_out
+    def get_clusters_ros(self, pcd):
+        all_objects=create_object_clusters(pcd['xyz'],pcd['probs'], -1.0, self.detection_threshold, compress_clusters=False)
+        objects_out=[]
+        for obj in all_objects:
+            if obj.size()>self.cluster_min_points:
+                objects_out.append(obj)
+        return objects_out
 
     def publish_object_markers(self, known_object_boxes):
         msg=MarkerArray()
@@ -162,32 +161,32 @@ class multi_query_localize(Node):
 
         return positive_clusters
 
-    # def top1_cluster_service(self, request:GetCluster.Request()):
-    #     resp=GetCluster.Response()
-    #     resp.success=False
+    def top1_cluster_service(self, request:GetCluster.Request(), resp):
+        resp=GetCluster.Response()
+        resp.success=False
 
-    #     positive_clusters=self.create_and_publish_clusters(request.main_query)
+        positive_clusters=self.create_and_publish_clusters(request.main_query)
 
-    #     if len(positive_clusters)==0:
-    #         resp.message="No clusters found"
-    #         return resp
+        if len(positive_clusters)==0:
+            resp.message="No clusters found"
+            return resp
 
-    #     if request.criterion=='mean' or request.criterion=='max' or request.criterion=='pcount':
-    #         pos_likelihoods=[ obj_.prob_stats[request.criterion] for obj_ in positive_clusters]
-    #     else:
-    #         resp.message="Criterion not recognized"
-    #         return resp
+        if request.criterion=='mean' or request.criterion=='max' or request.criterion=='pcount':
+            pos_likelihoods=[ obj_.prob_stats[request.criterion] for obj_ in positive_clusters]
+        else:
+            resp.message="Criterion not recognized"
+            return resp
 
-    #     whichC=np.argmax(pos_likelihoods)
-    #     for idx in range(request.num_points):
-    #         fPx=positive_clusters[whichC].farthestP[idx]
-    #         pt=Point()
-    #         pt.x=positive_clusters[whichC].pts[fPx][0]
-    #         pt.y=positive_clusters[whichC].pts[fPx][1]
-    #         pt.z=positive_clusters[whichC].pts[fPx][2]
-    #         resp.pts.append(pt)
-    #     resp.bbox3d=np.hstack((positive_clusters[whichC].box[0],positive_clusters[whichC].box[1])).tolist()
-    #     return resp
+        whichC=np.argmax(pos_likelihoods)
+        for idx in range(request.num_points):
+            fPx=positive_clusters[whichC].farthestP[idx]
+            pt=Point()
+            pt.x=positive_clusters[whichC].pts[fPx][0]
+            pt.y=positive_clusters[whichC].pts[fPx][1]
+            pt.z=positive_clusters[whichC].pts[fPx][2]
+            resp.pts.append(pt)
+        resp.bbox3d=np.hstack((positive_clusters[whichC].box[0],positive_clusters[whichC].box[1])).tolist()
+        return resp
     
     def cam_info_callback(self, cam_info):
         print("Cam info received")
@@ -340,31 +339,31 @@ class multi_query_localize(Node):
             print(f"Adding {query}:{results[query]['xyz'].shape[0]}.... Total:{self.pcloud[query]['xyz'].shape[0]}")
 
     # draw the resulting point clouds
-    # def draw_clusters_service(self, request):
-    #     resp=DrawCluster.Response()
-    #     resp.success=False
+    def draw_clusters_service(self, request, resp):
+        resp=DrawCluster.Response()
+        resp.success=False
 
-    #     positive_clusters=self.create_and_publish_clusters(request.main_query)
+        positive_clusters=self.create_and_publish_clusters(request.main_query)
 
-    #     from draw_pcloud import drawn_image
-    #     from detect_and_touch.map_utils import pointcloud_open3d
-    #     if TRACK_COLOR:
-    #         pcd_main=pointcloud_open3d(self.pcloud_main['xyz'],self.pcloud_main['rgb'])
-    #     else:
-    #         pcd_main=pointcloud_open3d(self.pcloud_main['xyz'], None)
-    #     dI=drawn_image(pcd_main)
-    #     boxes = [ obj_.box for obj_ in positive_clusters ]
-    #     dI.add_boxes_to_fg(boxes)
-    #     fName=f"draw_clusters.{self.pcloud_main['xyz'].shape[0]}.png"
-    #     if self.storage_dir is not None:
-    #         fName=self.storage_dir+"/"+fName
-    #     dI.save_fg(fName)
-    #     resp=Trigger.Response()
-    #     resp.success=True
-    #     resp.message=fName
-    #     return resp
+        from draw_pcloud import drawn_image
+        from detect_and_touch.map_utils import pointcloud_open3d
+        if TRACK_COLOR:
+            pcd_main=pointcloud_open3d(self.pcloud_main['xyz'],self.pcloud_main['rgb'])
+        else:
+            pcd_main=pointcloud_open3d(self.pcloud_main['xyz'], None)
+        dI=drawn_image(pcd_main)
+        boxes = [ obj_.box for obj_ in positive_clusters ]
+        dI.add_boxes_to_fg(boxes)
+        fName=f"draw_clusters.{self.pcloud_main['xyz'].shape[0]}.png"
+        if self.storage_dir is not None:
+            fName=self.storage_dir+"/"+fName
+        dI.save_fg(fName)
+        resp=Trigger.Response()
+        resp.success=True
+        resp.message=fName
+        return resp
     
-if __name__ == '__main__': 
+def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('queries', type=str, nargs='*', default=None,
@@ -383,6 +382,8 @@ if __name__ == '__main__':
         import sys
         sys.exit(-1)
 
+    print("Queries: ", args.queries)
+
     rclpy.init() 
 
     IT=multi_query_localize(args.queries,
@@ -396,3 +397,5 @@ if __name__ == '__main__':
     IT.destroy_node()
     rclpy.shutdown()
 
+if __name__ == '__main__': 
+    main()
