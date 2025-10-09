@@ -17,7 +17,7 @@ setup(
     maintainer_email='emartinso@ltu.edu',
     description='Does whatever I need it to do',
     license='MIT',
-    tests_require=['pytest'],
+    # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'ros2_object_query = detect_and_touch.ros2_object_query:main'
