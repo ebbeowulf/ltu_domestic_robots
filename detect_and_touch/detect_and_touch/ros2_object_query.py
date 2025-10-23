@@ -328,7 +328,7 @@ class multi_query_localize(Node):
         self.pcloud_creator.load_image(rgb, depth, poseM, uid_key=uid_key)
         if self.storage_dir is not None:
             cv2.imwrite(self.storage_dir+"/rgb"+uid_key+".png",rgb)
-            cv2.imwrite(self.storage_dir+"/depth"+uid_key+".png",rgb)
+            cv2.imwrite(self.storage_dir+"/depth"+uid_key+".png",depth)
         results=self.pcloud_creator.multi_prompt_process(self.query_list, self.detection_threshold, rotate90=True)
         for query in self.query_list:
             if results[query]['xyz'].shape[0]>0:
