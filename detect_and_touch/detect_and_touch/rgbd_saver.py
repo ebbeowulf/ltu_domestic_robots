@@ -13,7 +13,6 @@ from tf2_ros import TransformListener, Buffer, LookupException, ConnectivityExce
 from scipy.spatial.transform import Rotation as R
 import message_filters
 from .camera_params import camera_params
-from .map_utils import pcloud_from_images
 import csv
 
 TRACK_COLOR=True
@@ -53,7 +52,6 @@ class rgbd_saver(Node):
     def cam_info_callback(self, cam_info):
         print("Cam info received")
         self.params=camera_params(cam_info.height, cam_info.width, cam_info.k[0], cam_info.k[4], cam_info.k[2], cam_info.k[5], np.identity(4,dtype=float))
-        self.pcloud_creator=pcloud_from_images(self.params,self.is_yolo)
         self.destroy_subscription(self.camera_params_sub) 
 
     def pose_callback(self, odom_msg):
@@ -160,28 +158,30 @@ class rgbd_saver(Node):
     
     def rgbd_callback(self, rgb_img:Image, depth_img:Image):
         print("RGB-D images received")
-        if self.pcloud_creator is None:
-            return
         
         color_fName=f'color_{self.im_count:05}.png'
         depth_fName=f'depth_{self.im_count:05}.png'
         try:
             cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
             cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+
+            poseM=self.get_camera_pose(depth_img.header)
+
+            with open("poses.csv", mode="a", newline="") as file:
+                writer = csv.writer(file)
+
+                # Flatten the 4x4 matrix to a 1D list of 16 elements
+                row = poseM.flatten().tolist()
+                writer.writerow(row)
+
+            cv2.imwrite(color_fName,cv_image_rgb)
+            cv2.imwrite(depth_fName,cv_image_depth)
+            self.im_count+=1
+
         except Exception as e:
             self.get_logger().error(f"CvBridge error: {e}")  
             return
-        cv2.imwrite(color_fName,cv_image_rgb)
-        cv2.imwrite(depth_fName,cv_image_depth)
 
-        poseM=self.get_camera_pose(depth_img.header)
-
-        with open("poses.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-
-            # Flatten the 4x4 matrix to a 1D list of 16 elements
-            row = poseM.flatten().tolist()
-            writer.writerow(row)
 
 
             
