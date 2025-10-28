@@ -8,6 +8,7 @@ from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 import numpy as np
 from threading import Lock
+from std_msgs.msg import Header
 from tf2_ros import TransformListener, Buffer, LookupException, ConnectivityException, ExtrapolationException
 # from tf_transformations import euler_from_quaternion, quaternion_from_euler
 from scipy.spatial.transform import Rotation as R
@@ -49,7 +50,7 @@ class rgbd_saver(Node):
         # self.camera_params_sub = self.create_subscription(CameraInfo, '/camera/aligned_depth_to_color/camera_info', self.cam_info_callback, 10)
         self.rgb_sub = message_filters.Subscriber(self, Image, '/camera/color/image_raw')
         self.depth_sub = message_filters.Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw')
-        self.cam_info_sub = message_filters.Subscriber(self, CameraInfo, '/camera/aligned_depth_to_color/camera_info')
+        self.cam_info_sub = message_filters.Subscriber(self, Header, '/saved_trigger')
 
         # self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
         self.ts = message_filters.ApproximateTimeSynchronizer(
@@ -175,7 +176,7 @@ class rgbd_saver(Node):
         return poseM
     
     # def rgbd_callback(self, rgb_img:Image, depth_img:Image):
-    def rgbd_callback(self, rgb_img: Image, depth_img: Image, cam_info: CameraInfo):
+    def rgbd_callback(self, rgb_img: Image, depth_img: Image, trigger: Header):
         print("RGB-D images received")
         
         color_fName=f'color_{self.im_count:05}.png'
