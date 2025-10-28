@@ -25,7 +25,7 @@ def normalizeAngle(angle):
     return angle
 
 class rgbd_saver(Node):
-    def __init__(self):
+    def __init__(self, travel_params):
         # Initization of the node, name_sub
         super().__init__('rgbd_saver')
 
@@ -41,18 +41,36 @@ class rgbd_saver(Node):
         self.pose_lock=Lock()
         self.pose_sub = self.create_subscription(Odometry, "/odom", self.pose_callback, 10)
 
+        # Last image stats
+        self.last_image=None
+        self.travel_params=travel_params
+
         # Setup callback function
-        self.camera_params_sub = self.create_subscription(CameraInfo, '/camera/aligned_depth_to_color/camera_info', self.cam_info_callback, 10)
+        # self.camera_params_sub = self.create_subscription(CameraInfo, '/camera/aligned_depth_to_color/camera_info', self.cam_info_callback, 10)
         self.rgb_sub = message_filters.Subscriber(self, Image, '/camera/color/image_raw')
         self.depth_sub = message_filters.Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw')
+        self.cam_info_sub = message_filters.Subscriber(self, CameraInfo, '/camera/aligned_depth_to_color/camera_info')
 
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
+        # self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
+        self.ts = message_filters.ApproximateTimeSynchronizer(
+            [self.rgb_sub, self.depth_sub, self.cam_info_sub], 10, 0.1
+        )
+
         self.ts.registerCallback(self.rgbd_callback)
 
-    def cam_info_callback(self, cam_info):
-        print("Cam info received")
-        self.params=camera_params(cam_info.height, cam_info.width, cam_info.k[0], cam_info.k[4], cam_info.k[2], cam_info.k[5], np.identity(4,dtype=float))
-        self.destroy_subscription(self.camera_params_sub) 
+    def is_new_image(self, new_poseM):
+        if self.last_image is None:
+            return True
+        
+        deltaP=self.last_image['poseM'][:,3]-new_poseM[:,3]
+        dist=np.sqrt((deltaP**2).sum())
+        vec1=np.matmul(self.last_image['poseM'][:3,:3],[1,0,0])
+        vec2=np.matmul(new_poseM[:3,:3],[1,0,0])
+        deltaAngle=np.arccos(np.dot(vec1,vec2))
+        if dist>self.travel_params[0] or deltaAngle>self.travel_params[1]:
+            print(f"Dist {dist}, angle {deltaAngle} - new")        
+            return True
+        return False
 
     def pose_callback(self, odom_msg):
         print("pose received")
@@ -156,27 +174,29 @@ class rgbd_saver(Node):
             poseM=np.matmul(odom,base_relativeM)
         return poseM
     
-    def rgbd_callback(self, rgb_img:Image, depth_img:Image):
+    # def rgbd_callback(self, rgb_img:Image, depth_img:Image):
+    def rgbd_callback(self, rgb_img: Image, depth_img: Image, cam_info: CameraInfo):
         print("RGB-D images received")
         
         color_fName=f'color_{self.im_count:05}.png'
         depth_fName=f'depth_{self.im_count:05}.png'
         try:
-            cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
-            cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
-
             poseM=self.get_camera_pose(depth_img.header)
 
-            with open("poses.csv", mode="a", newline="") as file:
-                writer = csv.writer(file)
+            if self.is_new_image(poseM):
+                cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
+                cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+                with open("poses.csv", mode="a", newline="") as file:
+                    writer = csv.writer(file)
 
-                # Flatten the 4x4 matrix to a 1D list of 16 elements
-                row = poseM.flatten().tolist()
-                writer.writerow(row)
+                    # Flatten the 4x4 matrix to a 1D list of 16 elements
+                    row = poseM.flatten().tolist()
+                    writer.writerow(row)
 
-            cv2.imwrite(color_fName,cv_image_rgb)
-            cv2.imwrite(depth_fName,cv_image_depth)
-            self.im_count+=1
+                cv2.imwrite(color_fName,cv_image_rgb)
+                cv2.imwrite(depth_fName,cv_image_depth)
+                self.last_image={'depth': cv_image_rgb, 'rgb': cv_image_depth, 'poseM': poseM, 'time': depth_img.header.stamp}
+                self.im_count+=1
 
         except Exception as e:
             self.get_logger().error(f"CvBridge error: {e}")  
@@ -186,9 +206,15 @@ class rgbd_saver(Node):
 
             
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--min_travel_dist',type=float,default=0.1,help='Minimum distance the robot must travel before adding a new image to the point cloud (default = 0.1m)')
+    parser.add_argument('--min_travel_angle',type=float,default=0.1,help='Minimum angle the camera must have moved before adding a new image to the point cloud (default = 0.1 rad)')
+    args = parser.parse_args()
+    
     rclpy.init() 
 
-    IT=rgbd_saver()
+    IT=rgbd_saver([args.min_travel_dist,args.min_travel_angle])
     rclpy.spin(IT) 
 
     IT.destroy_node()
