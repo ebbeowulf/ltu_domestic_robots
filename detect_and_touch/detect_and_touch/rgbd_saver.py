@@ -13,7 +13,7 @@ from tf2_ros import TransformListener, Buffer, LookupException, ConnectivityExce
 # from tf_transformations import euler_from_quaternion, quaternion_from_euler
 from scipy.spatial.transform import Rotation as R
 import message_filters
-from .camera_params import camera_params
+# from .camera_params import camera_params
 import csv
 
 TRACK_COLOR=True
@@ -50,12 +50,12 @@ class rgbd_saver(Node):
         # self.camera_params_sub = self.create_subscription(CameraInfo, '/camera/aligned_depth_to_color/camera_info', self.cam_info_callback, 10)
         self.rgb_sub = message_filters.Subscriber(self, Image, '/camera/color/image_raw')
         self.depth_sub = message_filters.Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw')
-        self.cam_info_sub = message_filters.Subscriber(self, Header, '/saved_trigger')
+        self.trigger_sub = message_filters.Subscriber(self, Header, '/saved_trigger', self.trigger_callback, 10)
 
-        # self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
-        self.ts = message_filters.ApproximateTimeSynchronizer(
-            [self.rgb_sub, self.depth_sub, self.cam_info_sub], 10, 0.1
-        )
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.1)
+        # self.ts = message_filters.ApproximateTimeSynchronizer(
+        #     [self.rgb_sub, self.depth_sub, self.cam_info_sub], 10, 0.1
+        # )
 
         self.ts.registerCallback(self.rgbd_callback)
 
@@ -175,33 +175,51 @@ class rgbd_saver(Node):
             poseM=np.matmul(odom,base_relativeM)
         return poseM
     
-    # def rgbd_callback(self, rgb_img:Image, depth_img:Image):
-    def rgbd_callback(self, rgb_img: Image, depth_img: Image, trigger: Header):
+    def rgbd_callback(self, rgb_img:Image, depth_img:Image):
+        # def rgbd_callback(self, rgb_img: Image, depth_img: Image, trigger: Header):
         print("RGB-D images received")
         
         color_fName=f'color_{self.im_count:05}.png'
         depth_fName=f'depth_{self.im_count:05}.png'
         try:
             poseM=self.get_camera_pose(depth_img.header)
+            self.cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
+            self.cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+            self.poseM=poseM
+            
+            # if self.is_new_image(poseM):
+            #     cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
+            #     cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+            #     with open("poses.csv", mode="a", newline="") as file:
+            #         writer = csv.writer(file)
 
-            if self.is_new_image(poseM):
-                cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
-                cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
-                with open("poses.csv", mode="a", newline="") as file:
-                    writer = csv.writer(file)
+            #         # Flatten the 4x4 matrix to a 1D list of 16 elements
+            #         row = poseM.flatten().tolist()
+            #         writer.writerow(row)
 
-                    # Flatten the 4x4 matrix to a 1D list of 16 elements
-                    row = poseM.flatten().tolist()
-                    writer.writerow(row)
 
-                cv2.imwrite(color_fName,cv_image_rgb)
-                cv2.imwrite(depth_fName,cv_image_depth)
-                self.last_image={'depth': cv_image_rgb, 'rgb': cv_image_depth, 'poseM': poseM, 'time': depth_img.header.stamp}
-                self.im_count+=1
+            #     cv2.imwrite(color_fName,cv_image_rgb)
+            #     cv2.imwrite(depth_fName,cv_image_depth)
+            #     self.last_image={'depth': cv_image_rgb, 'rgb': cv_image_depth, 'poseM': poseM, 'time': depth_img.header.stamp}
+            #     self.im_count+=1
 
         except Exception as e:
             self.get_logger().error(f"CvBridge error: {e}")  
             return
+
+    def trigger_callback(self, trigger: Header):
+        cv_image_rgb = self.bridge.imgmsg_to_cv2(rgb_img, "bgr8")
+        cv_image_depth = self.bridge.imgmsg_to_cv2(depth_img, desired_encoding='passthrough')
+        with open("poses.csv", mode="a", newline="") as file:
+            writer = csv.writer(file)
+            # Flatten the 4x4 matrix to a 1D list of 16 elements
+            row = poseM.flatten().tolist()
+            writer.writerow(row)
+
+        cv2.imwrite(color_fName,cv_image_rgb)
+        cv2.imwrite(depth_fName,cv_image_depth)
+        self.last_image={'depth': cv_image_rgb, 'rgb': cv_image_depth, 'poseM': poseM, 'time': depth_img.header.stamp}
+        self.im_count+=1
 
 
 
