@@ -9,9 +9,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 add_executable(rgbd_synchronizer src/rgbd_synchronizer.cpp)
 ament_target_dependencies(rgbd_synchronizer rclcpp sensor_msgs image_transport message_filters)
@@ -22,10 +25,18 @@ ament_target_dependencies(color_depth_thermal_synchronizer rclcpp sensor_msgs im
 add_executable(depth_image_saver src/depth_image_saver.cpp)
 ament_target_dependencies(depth_image_saver rclcpp sensor_msgs image_transport message_filters cv_bridge)
 
+add_executable(color_depth_thermal_saver src/color_depth_thermal_saver.cpp)
+ament_target_dependencies(color_depth_thermal_saver rclcpp sensor_msgs image_transport message_filters cv_bridge)
+
+add_executable(rgbd_saver src/rgbd_saver.cpp)
+ament_target_dependencies(rgbd_saver rclcpp sensor_msgs image_transport message_filters cv_bridge geometry_msgs tf2 tf2_ros)
+
 install(TARGETS
   rgbd_synchronizer
   color_depth_thermal_synchronizer
   depth_image_saver
+  color_depth_thermal_saver
+  rgbd_saver
   DESTINATION lib/${PROJECT_NAME})
 
 install(

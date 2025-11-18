@@ -1,3 +1,4 @@
 string                   main_query
+int32                    which_cluster
 ---
 bool                     success    #indicate successful run of triggered services
