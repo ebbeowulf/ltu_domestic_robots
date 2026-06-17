@@ -7,11 +7,11 @@ from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
 def generate_launch_description():
-    # Path to Realsense launch file
-    realsense_launch_path = os.path.join(
-        get_package_share_directory('synchronized_throttle'),
+    # Path to ZED launch file
+    zed_launch_path = os.path.join(
+        get_package_share_directory('zed_wrapper'),
         'launch',
-        'agro_realsense.launch.py'
+        'zed_camera.launch.py'
     )
 
     # Path to Seek Thermal launch file
@@ -29,9 +29,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        # Realsense Camera Launch
+        # ZED Camera Launch
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(realsense_launch_path)
+            PythonLaunchDescriptionSource(zed_launch_path),
+            launch_arguments={'camera_model': 'zed'}.items()
         ),
 
         # Seek Thermal Camera Launch

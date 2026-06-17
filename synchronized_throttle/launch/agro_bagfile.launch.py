@@ -21,7 +21,7 @@ def generate_launch_description():
 
         # Start rosbag2 recording
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/camera_throttled/color/camera_info', '/camera_throttled/color/image_raw', '/camera_throttled/depth/image_rect_raw', '/camera_throttled/thermal/image_raw', '/tf', '/fix'],
+            cmd=['ros2', 'bag', 'record', '/camera_throttled/color/camera_info', '/camera_throttled/color/image_raw', '/camera_throttled/depth/image_rect_raw', '/camera_throttled/thermal/image_raw', '/camera_throttled/ir/image_raw', '/tf', '/fix'],
             output='screen'
         )    
     ])

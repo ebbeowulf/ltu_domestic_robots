@@ -22,9 +22,13 @@ ament_target_dependencies(color_depth_thermal_synchronizer rclcpp sensor_msgs im
 add_executable(depth_image_saver src/depth_image_saver.cpp)
 ament_target_dependencies(depth_image_saver rclcpp sensor_msgs image_transport message_filters cv_bridge)
 
+add_executable(color_depth_thermal_ir_synchronizer src/color_depth_thermal_ir_synchronizer.cpp)
+ament_target_dependencies(color_depth_thermal_ir_synchronizer rclcpp sensor_msgs image_transport message_filters)
+
 install(TARGETS
   rgbd_synchronizer
   color_depth_thermal_synchronizer
+  color_depth_thermal_ir_synchronizer
   depth_image_saver
   DESTINATION lib/${PROJECT_NAME})
 
